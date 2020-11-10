@@ -86,9 +86,101 @@ Was ist bei den Paketen gleich, worin unterscheiden Sie sich?
 
 Was beobachten Sie, wenn Sie von Server 1 ein traceroute zu Server 3 machen?
 
-## Aufgabe 3: Firewall
+## Aufgabe 3a: Firewall
 
-ACHTUNG: Probieren Sie das nur im Netzwerk-Simulator! Keine Attacken im Internet, Hochschulnetz, Firmennetzen und geteilten Heimnetzen.
+ACHTUNG: Probieren Sie das nur im Netzwerk-Simulator! Keine Attacken im Internet, Hochschulnetz, Firmennetzen und geteilten Heimnetzen. Keine unsicheren Logins mit einstelligen Passwörtern. Die Firewall-Konfiguration geht nur auf spezifische Beispiele ein und ist keine Konfiguration für ein System, das mit dem Internet verbunden ist.
 
+Machen Sie sich mit der Netzwerkstruktur vertraut. Wir verwenden iptables für die Firewall ([man Page](https://linux.die.net/man/8/iptables), [Intro Artikel](https://www.pro-linux.de/artikel/2/761/2,grundsätzliche-funktionsweise.html)). 
 
+Lassen Sie sich als erstes die Konfiguration der Firewall-Regeln anzeigen:
+```
+$ iptables -L -v
+```
+Wofür sind die 3 angezeigten Chains? Was bewirken diese im Moment?
 
+Pingen Sie vom Attacker den Server und die Firewall an:
+```
+root@attacker:~# ping -c 1 198.51.100.9
+...
+root@attacker:~# ping -c 1 203.0.113.13
+...
+```
+
+Verändern Sie das Verhalten für die INPUT Chain von ACCEPT zu DROP:
+```
+root@firewall:/# iptables --policy INPUT DROP
+```
+
+Pingen Sie erneut vom Attacker den Server und die Firewall an. Was ist anders? Was passiert, wenn Sie von der Firewall den Attacker anpingen?
+Lassen Sie sich danach mit iptables -L -v wieder die Firewallregeln anzeigen.
+
+Bisher haben wir nur die Default-Policies für die Chains gesetzt. Mit "iptables -A KETTE -j REGEL BEDINGUNGEN"  wird eine Kette (Chain) am Ende erweiert. Eine Chain wird ausgewertet bis die erste Bedingung erfüllt wurde oder sonst eben der Default.
+Fügen Sie nun eine Regel für die INPUT Chain ein, die Pakete REJECTed:
+```
+root@firewall:/# iptables -A INPUT -j REJECT
+```
+Wenn Sie jetzt die Firewall anpingen, was ist anders? Diskutieren Sie Vor- und Nachteile.
+
+## Aufgabe 3b: SSH Brute Force Attack blokieren
+
+ACHTUNG: Probieren Sie das nur im Netzwerk-Simulator! Keine Attacken im Internet, Hochschulnetz, Firmennetzen und geteilten Heimnetzen. Keine unsicheren Logins mit einstelligen Passwörtern. Die Firewall-Konfiguration geht nur auf spezifische Beispiele ein und ist keine Konfiguration für ein System, das mit dem Internet verbunden ist.
+
+Wir verwenden weiter das Lab 03_firewall. Auf dem Server wird beim Start ein Nutzer "test" mit einem zufälligen Passwort bestehend aus einem(!) Kleinbuchstaben. Auf dem Attacker ist ein Skript, das alle Kleinbuchstaben als Passwort durchprobiert, um sich auf den Server einzuloggen und bei Erfolgt dort eine Datei "HACKED" im Verzeichnis "/home/test" zu hinterlassen.
+Starten Sie das Skript und prüfen danach, ob es erfolgreich war. 
+Attacker:
+```
+root@attacker:~# bash brute_force_ssh.sh 
+...
+```
+Danach auf dem Server:
+```
+root@server1:~# ls /home/test/
+HACKED_12_25_57_PASSWORD_w
+```
+Das heisst, dass um 12:25:57 Uhr die Brute-Force-Attacke erfolgreich war mit dem Passwort "w".
+Richten Sie nun die Firewall so ein, dass eine Brute-Force-Attacke verhindert wird, indem nur 3 Verbindungen pro 5 Minuten auf den SSH-Port (22) weitergeleitet werden. Orientieren Sie sich dabei z.B. an [Tutorial](https://www.rackaid.com/blog/how-to-block-ssh-brute-force-attacks/). Beachten Sie u.a. die folgenden Abweichungen:
+- Logging für IP-Tables funktioniert im Netzwerksimulator nicht (wegen Docker)
+- Firewall und Server sind bei uns auf verschiedenen Rechnern. Dies erfordert Anpassungen bzgl. der Chains und Netzwerkinterfaces
+
+Testen Sie erneut die Attacke. Beobachten Sie das verhalten des Skripts und prüfen Sie, ob nach Durchlaufen des Skripts der Hack erfolgreich war.
+
+Was sind die Vorteile diese Blockade (und weitere Regeln) auf einer dezidierten Firewall statt direkt auf dem Server durchzuführen?
+
+Was wären weitere Möglichkeiten, um den SSH-Zugang zu schützen?
+
+## Aufgabe 4: Network Addresse Translation (NAT)
+
+Mit NAT können mehrere Computer mit privaten IP-Adressen sich eine öffentliche IP-Adresse teilen, um auf das Internet zuzugreifen.
+
+Starten Sie das Lab 04_nat. Hier ist ein PC über einen NAT-Router mit einem Server verbunden. Sowohl auf PC als auch Server laufen HTTP-Server. Unser Ziel ist es, dass diese Gegenseitig auf die Server zugreifen können. Richten Sie dazu das Routing auf PC und Router ein, sowie NAT auf dem Router. Beachten Sie, dass der PC eine private IP-Adresse hat und daher kein Traffic vom Internet an diese Adressen geroutet werden können (und aus Sicherheitsgründen auch im Allgemeinen nicht gewünscht ist.)
+
+Nutzen Sie den Kommandozeilenbrowser links, z.B. auf dem PC:
+```
+root@pc:/# links 127.0.0.1
+```
+Mit "q" können Sie den Browser wieder verlassen.
+
+Starten Sie als nächstes tcpdump auf dem Router und probieren Sie dann vom PC auf den Server zuzugreifen:
+```
+root@router:/# tcpdump -tennvvi eth1
+...
+# WECHSEL KONSOLE
+root@pc:/# links 203.0.113.51
+[q]
+```
+Was passiert?
+
+Konfigurieren Sie als nächstes den Router für NAT.
+```
+iptables -t nat -A POSTROUTING -o eth1 -j MASQUERADE
+```
+
+Beobachten Sie auf Router erneut mit tcpdump und probieren vom PC auf den Server zuzugreifen. Mit welcher IP-Adressen denkt der Server zu kommunizieren?
+
+Richten Sie auf dem Router eine Port-Weiterleitung auf den HTTP-Server des PCs ein. Verwenden Sie dazu iptables indem Sie die richtigen Werte für \[PLATZHALTER\] einfügen:
+```
+root@router:/# iptables -t nat -A PREROUTING -i [INTERFACE] -p [PROTOKOLL] --dport [PORT] -j DNAT --to-destination [ZIELIP]:[ZIELPORT]
+```
+
+Greifen Sie danach vom Server auf den HTTP-Server des Clients zu. Welche IP-Adresse muss ausgewählt werden?
+Beobachten Sie den Traffic auf dem Router mit tcpdump. Welche HTTP-Methoden werden verwendet? Welche Header sind gesetzt? Was steht im Host-Header?
