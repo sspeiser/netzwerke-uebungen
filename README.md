@@ -41,5 +41,54 @@ Wenn Sie mit einem Lab fertig sind können Sie die Terminals schliessen und in d
 $ kathara wipe
 ```
 
+## Grundlegendes zu Labs
+
+Ein Kathará Lab ist in einem Verzeichnis gespeichert mit folgenden Inhalten:
+- lab.conf: Beschreibt die Geräte (Hosts und Router), ihre Netzwerkinterfaces und ihre "Verkabelung". Format ist z.B. pc[0]=A, d.h. es wird ein Gerät "pc" angelegt, dessen Netzwerkinterface "eth0" mit der Kollisionsdomäne "A" verbunden ist. Netzwerkinterfaces in der gleichen Kollisionsdomäne können miteinander kommunizieren. Mehr Details in der [Kathará-Dokumentation](https://www.kathara.org/man-pages/kathara-lab.conf.5.html)
+- Optional für jedes Gerät "device" eine Datei "device.startup": Shell Skript, das das Gerät konfiguriert, z.B. IP-Adresse setzen
+- Weitere Möglichkeiten, wie z.B. Verzeichnisse, die auf die einzelnen Geräte gemappt werden in der [Kathará-Dokumentation](https://www.kathara.org/man-pages/kathara-lab-dirs.7.html)
+
+Ein Lab im Verzeichnis ExampleLab können Sie mit dem Befehl: 
+```
+$ kathara lstart -d ExampleLab
+```
+starten. Das beenden erfolgt mit kathara lclean -d ... oder mit kathara wipe (hier werden alle Labs und sonstigen Geräte gelöscht/gestoppt).
+
+## Aufgabe 1: Setzen von IP-Adressen
+
+Unter Linux können Sie mit dem [ifconfig](https://linux.die.net/man/8/ifconfig) Befehl IP-Adressen setzen, z.B.:
+```
+$ ifconfig eth0 192.168.0.1 netmask 255.255.255.0 up
+```
+Starten Sie das Lab 01_two_computers und ändern Sie in den Kommandozeilen der Rechner "pc1" und "pc2" die IP-Adressen auf 10.0.0.1 und 10.10.10.10 mit Netz 10.0.0.0/8. 
+Testen Sie die Konfiguration durch gegenseitges anpingen.
+
+## Aufgabe 2a: Routing
+
+Im Lab 02_network ist ein sehr einfaches Netzwerk(fragment). Server 1, Server 2 und Server 3 sind mit IP-Adressen konfiguriert. Die Routing-Tabellen und die Router müssen initialisiert werden.
+Mit dem [route](https://linux.die.net/man/8/route) Befehl können Routen angezeigt und angelegt werden.
+- Visualisieren oder Beschreiben Sie das Netzwerk
+- Vergeben Sie IP-Adressen an die Netzwerkinterfaces der Router, verwenden Sie für neu benötigte Netzwerke die Teile des Netzwerks 203.0.113.0/24
+- Richten Sie die Routen ein
+Testen Sie, dass alle Server miteinander "sprechen" können mit Hilfe von ping.
+
+Verwenden Sie den Befehl [traceroute](https://linux.die.net/man/8/traceroute), um die Routing-Stationen zwischen Server 1 und Server 2 sowie zwischen Server 2 und Server 3 nachzuvollziehen.
+
+## Aufgabe 2b: Analyse mit tcpdump
+
+Verwenden Sie das konfigurierte Netzwerk aus Aufgabe 2a und analysieren Sie es mit [tcpdump](https://linux.die.net/man/8/tcpdump).
+Der Befehl tcpdump gibt die Netzwerkpakete auf einem Interface in strukturierter Form auf der Konsole aus. Dumpen Sie bei Router 1 und Router 2 jeweils das Interface eth0:
+```
+$ tcpdump -tennvv -i eth0
+```
+Beobachten Sie die Pakete, wenn Sie Server 3 von Server 1 aus anpingen.
+Was ist bei den Paketen gleich, worin unterscheiden Sie sich?
+
+Was beobachten Sie, wenn Sie von Server 1 ein traceroute zu Server 3 machen?
+
+## Aufgabe 3: Firewall
+
+ACHTUNG: Probieren Sie das nur im Netzwerk-Simulator! Keine Attacken im Internet, Hochschulnetz, Firmennetzen und geteilten Heimnetzen.
+
 
 

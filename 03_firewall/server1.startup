@@ -1,0 +1,12 @@
+ifconfig eth0 198.51.100.9 netmask 255.255.255.252 up
+route add default gw 198.51.100.10
+
+# Erzeuge zufälliges Paswort mit 3 kleinen Buchstaben
+PASSWD=`< /dev/urandom tr -dc a-z | head -c${1:-3};echo;`
+# Crypte Passwort
+CRYPTPASSWD=`perl -e 'print crypt($ARGV[0], "password")' $PASSWD` 
+# Erstelle Benutzer testbenutzer mit dem zufälligen Passwort
+useradd -m -p $CRYPTPASSWD testnutzer
+
+/etc/init.d/ssh start
+
